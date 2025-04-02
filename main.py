@@ -8,6 +8,11 @@ import os
 
 app = FastAPI()
 
+# 🔧 Basit test endpoint'i
+@app.get("/")
+def root():
+    return {"message": "✅ Domates API çalışıyor!"}
+
 MODEL_URL = "https://huggingface.co/Kahsi13/DomatesRailway/resolve/main/bert_domates_model_quant.onnx"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
