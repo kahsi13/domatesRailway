@@ -3,12 +3,25 @@ from pydantic import BaseModel
 from transformers import AutoTokenizer
 import onnxruntime
 import numpy as np
+import requests
+import os
 
 app = FastAPI()
 
-# Tokenizer ve ONNX modeli yükle
+MODEL_URL = "https://huggingface.co/Kahsi13/DomatesRailway/resolve/main/bert_domates_model_quant.onnx"
+MODEL_PATH = "bert_domates_model_quant.onnx"
+
+# Eğer dosya yoksa indir
+if not os.path.exists(MODEL_PATH):
+    print("Model indiriliyor...")
+    r = requests.get(MODEL_URL)
+    with open(MODEL_PATH, "wb") as f:
+        f.write(r.content)
+    print("Model indirildi!")
+
+# Hugging Face'deki tokenizer'ı yükle
 tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
-session = onnxruntime.InferenceSession("bert_domates_model_quant.onnx")
+session = onnxruntime.InferenceSession(MODEL_PATH)
 
 class InputText(BaseModel):
     text: str
@@ -36,8 +49,6 @@ def predict(input: InputText):
         prediction = int(np.argmax(ort_outs[0]))
 
         return {"prediction": prediction}
-
+    
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return {"error": str(e)}
