@@ -8,26 +8,24 @@ import os
 
 app = FastAPI()
 
-# 🧪 Test endpoint
 @app.get("/")
 def root():
     return {"message": "✅ Domates API çalışıyor!"}
 
-# Model ve Tokenizer global tanım
 tokenizer = None
 session = None
 
-MODEL_URL = "https://huggingface.co/Kahsi13/DomatesRailway/resolve/main/bert_domates_model_quant.onnx"
+# Yeni Google Drive ID
+MODEL_ID = "1_1unGzrmatx08nF_AHeDi5PCark0xhIy"
+MODEL_URL = f"https://drive.google.com/uc?export=download&id={MODEL_ID}"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
-
-# 🚀 Startup'ta model ve tokenizer yüklenir
 @app.on_event("startup")
 def startup_event():
     global tokenizer, session
 
     if not os.path.exists(MODEL_PATH):
-        print("🔽 Model indiriliyor...")
+        print("📥 Model indiriliyor...")
         r = requests.get(MODEL_URL)
         with open(MODEL_PATH, "wb") as f:
             f.write(r.content)
@@ -35,18 +33,16 @@ def startup_event():
 
     tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
     session = onnxruntime.InferenceSession(MODEL_PATH)
-    print("✅ Tokenizer ve ONNX model yüklendi.")
+    print("✅ Tokenizer ve model yüklendi.")
 
-# 📩 Kullanıcıdan gelen metin yapısı
 class InputText(BaseModel):
     text: str
 
-# 🧠 Tahmin endpoint'i
 @app.post("/predict")
 def predict(input: InputText):
     try:
         if tokenizer is None or session is None:
-            return {"error": "⏳ Model henüz hazır değil, lütfen birkaç saniye sonra tekrar deneyin."}
+            return {"error": "⏳ Model yükleniyor, lütfen birazdan tekrar deneyin."}
 
         encoding = tokenizer.encode_plus(
             input.text,
