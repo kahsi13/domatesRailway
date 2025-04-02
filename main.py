@@ -3,41 +3,47 @@ from pydantic import BaseModel
 from transformers import AutoTokenizer
 import onnxruntime
 import numpy as np
-import requests
 import os
+import zipfile
 
 app = FastAPI()
 
+# 🧪 Test endpoint
 @app.get("/")
 def root():
     return {"message": "✅ Domates API çalışıyor!"}
 
+# Model ve tokenizer için global değişkenler
 tokenizer = None
 session = None
 
-# Yeni Google Drive ID
-MODEL_ID = "1_1unGzrmatx08nF_AHeDi5PCark0xhIy"
-MODEL_URL = f"https://drive.google.com/uc?export=download&id={MODEL_ID}"
+# Dosya yolları
+MODEL_ZIP_PATH = "bert_model.zip"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
 @app.on_event("startup")
 def startup_event():
     global tokenizer, session
 
+    # Eğer .onnx dosyası yoksa zip içinden çıkar
     if not os.path.exists(MODEL_PATH):
-        print("📥 Model indiriliyor...")
-        r = requests.get(MODEL_URL)
-        with open(MODEL_PATH, "wb") as f:
-            f.write(r.content)
-        print("✅ Model indirildi!")
+        print("📦 Zip dosyasından model çıkarılıyor...")
+        with zipfile.ZipFile(MODEL_ZIP_PATH, 'r') as zip_ref:
+            zip_ref.extractall(".")
+        print("✅ Model çıkarıldı.")
 
+    # Tokenizer Hugging Face üzerinden
     tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
+
+    # ONNX modeli yükle
     session = onnxruntime.InferenceSession(MODEL_PATH)
     print("✅ Tokenizer ve model yüklendi.")
 
+# Kullanıcıdan gelen metin yapısı
 class InputText(BaseModel):
     text: str
 
+# Tahmin endpoint'i
 @app.post("/predict")
 def predict(input: InputText):
     try:
