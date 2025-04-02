@@ -8,32 +8,45 @@ import os
 
 app = FastAPI()
 
-# 🔧 Basit test endpoint'i
+# 🧪 Test endpoint
 @app.get("/")
 def root():
     return {"message": "✅ Domates API çalışıyor!"}
 
+# Model ve Tokenizer global tanım
+tokenizer = None
+session = None
+
 MODEL_URL = "https://huggingface.co/Kahsi13/DomatesRailway/resolve/main/bert_domates_model_quant.onnx"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
-# Eğer dosya yoksa indir
-if not os.path.exists(MODEL_PATH):
-    print("Model indiriliyor...")
-    r = requests.get(MODEL_URL)
-    with open(MODEL_PATH, "wb") as f:
-        f.write(r.content)
-    print("Model indirildi!")
+# 🚀 Startup'ta model ve tokenizer yüklenir
+@app.on_event("startup")
+def startup_event():
+    global tokenizer, session
 
-# Hugging Face'deki tokenizer'ı yükle
-tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
-session = onnxruntime.InferenceSession(MODEL_PATH)
+    if not os.path.exists(MODEL_PATH):
+        print("🔽 Model indiriliyor...")
+        r = requests.get(MODEL_URL)
+        with open(MODEL_PATH, "wb") as f:
+            f.write(r.content)
+        print("✅ Model indirildi!")
 
+    tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
+    session = onnxruntime.InferenceSession(MODEL_PATH)
+    print("✅ Tokenizer ve ONNX model yüklendi.")
+
+# 📩 Kullanıcıdan gelen metin yapısı
 class InputText(BaseModel):
     text: str
 
+# 🧠 Tahmin endpoint'i
 @app.post("/predict")
 def predict(input: InputText):
     try:
+        if tokenizer is None or session is None:
+            return {"error": "⏳ Model henüz hazır değil, lütfen birkaç saniye sonra tekrar deneyin."}
+
         encoding = tokenizer.encode_plus(
             input.text,
             padding="max_length",
