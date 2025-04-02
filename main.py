@@ -20,6 +20,7 @@ session = None
 MODEL_URL = "https://huggingface.co/Kahsi13/DomatesRailway/resolve/main/bert_domates_model_quant.onnx"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
+
 # 🚀 Startup'ta model ve tokenizer yüklenir
 @app.on_event("startup")
 def startup_event():
