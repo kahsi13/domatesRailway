@@ -4,35 +4,40 @@ from transformers import AutoTokenizer
 import onnxruntime
 import numpy as np
 import os
-import zipfile
+import base64
 
 app = FastAPI()
 
-# 🧪 Test endpoint
 @app.get("/")
 def root():
     return {"message": "✅ Domates API çalışıyor!"}
 
-# Model ve tokenizer için global değişkenler
+# Global değişkenler
 tokenizer = None
 session = None
 
 # Dosya yolları
-MODEL_ZIP_PATH = "bert_model.zip"
+MODEL_B64_PATH = "bert_model_base64.txt"
 MODEL_PATH = "bert_domates_model_quant.onnx"
 
 @app.on_event("startup")
 def startup_event():
     global tokenizer, session
 
-    # Eğer .onnx dosyası yoksa zip içinden çıkar
+    # Eğer .onnx dosyası yoksa, base64'ten çöz
     if not os.path.exists(MODEL_PATH):
-        print("📦 Zip dosyasından model çıkarılıyor...")
-        with zipfile.ZipFile(MODEL_ZIP_PATH, 'r') as zip_ref:
-            zip_ref.extractall(".")
-        print("✅ Model çıkarıldı.")
+        print("📥 Base64 model dosyası çözümleniyor...")
+        try:
+            with open(MODEL_B64_PATH, "rb") as encoded_file:
+                encoded_data = encoded_file.read()
+                with open(MODEL_PATH, "wb") as model_file:
+                    model_file.write(base64.b64decode(encoded_data))
+            print("✅ Model başarıyla oluşturuldu.")
+        except Exception as e:
+            print(f"❌ Decode hatası: {e}")
+            return
 
-    # Tokenizer Hugging Face üzerinden
+    # Tokenizer Hugging Face'ten yükleniyor
     tokenizer = AutoTokenizer.from_pretrained("Kahsi13/DomatesRailway")
 
     # ONNX modeli yükle
@@ -43,7 +48,6 @@ def startup_event():
 class InputText(BaseModel):
     text: str
 
-# Tahmin endpoint'i
 @app.post("/predict")
 def predict(input: InputText):
     try:
@@ -70,6 +74,6 @@ def predict(input: InputText):
         prediction = int(np.argmax(ort_outs[0]))
 
         return {"prediction": prediction}
-    
+
     except Exception as e:
         return {"error": str(e)}
