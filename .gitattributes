@@ -2,4 +2,3 @@
 * text=auto
 *.onnx filter=lfs diff=lfs merge=lfs -text
 *.txt filter=lfs diff=lfs merge=lfs -text
-bert_model_base64.txt filter=lfs diff=lfs merge=lfs -text
